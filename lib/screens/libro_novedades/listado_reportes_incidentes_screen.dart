@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/novedades_service.dart';
 import '../../models/novedad.dart';
+import 'detalle_incidente.dart';
 
 class ReportesIncidentesScreen extends StatefulWidget {
   @override
@@ -52,6 +53,12 @@ class _ReportesIncidentesScreenState extends State<ReportesIncidentesScreen> {
               return Card(
                 margin: EdgeInsets.all(10),
                 child: ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => DetalleReporteIncidenteScreen(incidente: reporte)),
+                    );
+                  },
                   title: Text(reporte.titulo),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

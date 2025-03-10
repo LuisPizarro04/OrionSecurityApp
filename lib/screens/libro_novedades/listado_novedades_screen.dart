@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/novedades_service.dart';
 import '../../models/novedad.dart';
+import 'detalle_novedad_screen.dart';
 
 class NovedadesDiariasScreen extends StatefulWidget {
   @override
@@ -52,6 +53,12 @@ class _NovedadesDiariasScreenState extends State<NovedadesDiariasScreen> {
               return Card(
                 margin: EdgeInsets.all(10),
                 child: ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => DetalleNovedadScreen(novedad: novedad)),
+                    );
+                  },
                   title: Text(novedad.titulo),
                   subtitle: Text(novedad.descripcion),
                   trailing: Text(novedad.fecha.toString()),

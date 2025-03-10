@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/novedades_service.dart';
 import '../../models/novedad.dart';
+import 'detalle_rep_general_screen.dart';
 
 class ReportesGeneralesScreen extends StatefulWidget {
   @override
@@ -52,6 +53,12 @@ class _ReportesGeneralesScreenState extends State<ReportesGeneralesScreen> {
               return Card(
                 margin: EdgeInsets.all(10),
                 child: ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => DetalleReporteGeneralScreen(reporte: reporte)),
+                    );
+                  },
                   title: Text(reporte.titulo),
                   subtitle: Text(reporte.resumen),
                   trailing: Text(reporte.fecha.toString()),
