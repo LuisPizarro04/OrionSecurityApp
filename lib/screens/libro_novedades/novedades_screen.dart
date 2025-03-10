@@ -5,6 +5,9 @@ import '../home_screen.dart';
 import 'registrar_novedad_screen.dart';
 import 'reporte_general_screen.dart';
 import 'reporte_incidente_screen.dart';
+import 'listado_novedades_screen.dart';
+import 'listado_reportes_generales_screen.dart';
+import 'listado_reportes_incidentes_screen.dart';
 
 class NovedadesScreen extends StatefulWidget {
   @override
@@ -36,7 +39,7 @@ class _NovedadesScreenState extends State<NovedadesScreen> {
   }
 
   Widget _buildSection<T>(
-      String title, Future<List<T>> future, Widget Function(T) itemBuilder) {
+      String title, Future<List<T>> future, Widget Function(T) itemBuilder, VoidCallback onTap) {
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -44,16 +47,19 @@ class _NovedadesScreenState extends State<NovedadesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.blueGrey[800],
-              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-            ),
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          GestureDetector(
+            onTap: onTap, // ✅ Redirige a la pantalla correspondiente al tocar el título
+            child: Container(
+              padding: EdgeInsets.all(12),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey[800],
+                borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+              ),
+              child: Text(
+                title,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
             ),
           ),
           FutureBuilder<List<T>>(
@@ -76,11 +82,12 @@ class _NovedadesScreenState extends State<NovedadesScreen> {
                 );
               }
 
+              var items = snapshot.data!.take(3).toList(); // ✅ Muestra solo las últimas 3 entradas
               return ListView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) => itemBuilder(snapshot.data![index]),
+                itemCount: items.length,
+                itemBuilder: (context, index) => itemBuilder(items[index]),
               );
             },
           ),
@@ -152,14 +159,13 @@ class _NovedadesScreenState extends State<NovedadesScreen> {
       ],
     );
   }
-  /// Método para cargar las novedades desde la API
+
   void _cargarNovedades() {
     setState(() {
-      _novedadesDiarias = _novedadesService.obtenerNovedadesDiarias();
-      _reportesGenerales = _novedadesService.obtenerReportesGenerales();
-      _reportesIncidentes = _novedadesService.obtenerReportesIncidentes();
+      _fetchNovedades();
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,10 +193,10 @@ class _NovedadesScreenState extends State<NovedadesScreen> {
               leading: Icon(Icons.home),
               title: Text("Inicio"),
               onTap: () {
-                Navigator.pop(context); // 🔹 Cierra el menú antes de navegar
+                Navigator.pop(context);
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => HomeScreen()), // 🔹 Redirige directamente a HomeScreen
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
                 );
               },
             ),
@@ -213,9 +219,12 @@ class _NovedadesScreenState extends State<NovedadesScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildSection<NovedadDiaria>("Novedades Diarias", _novedadesDiarias, _buildNovedadItem),
-            _buildSection<ReporteGeneral>("Reportes Generales", _reportesGenerales, _buildReporteGeneralItem),
-            _buildSection<ReporteIncidente>("Reportes de Incidentes", _reportesIncidentes, _buildReporteIncidenteItem),
+            _buildSection<NovedadDiaria>("Novedades Diarias", _novedadesDiarias, _buildNovedadItem,
+                    () => Navigator.push(context, MaterialPageRoute(builder: (context) => NovedadesDiariasScreen()))),
+            _buildSection<ReporteGeneral>("Reportes Generales", _reportesGenerales, _buildReporteGeneralItem,
+                    () => Navigator.push(context, MaterialPageRoute(builder: (context) => ReportesGeneralesScreen()))),
+            _buildSection<ReporteIncidente>("Reportes de Incidentes", _reportesIncidentes, _buildReporteIncidenteItem,
+                    () => Navigator.push(context, MaterialPageRoute(builder: (context) => ReportesIncidentesScreen()))),
           ],
         ),
       ),
