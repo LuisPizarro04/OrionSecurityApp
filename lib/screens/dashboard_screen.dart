@@ -3,12 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:segcdm/screens/registro_personas_screen.dart';
 import 'package:segcdm/screens/registro_vehiculos_screen.dart';
+import 'package:segcdm/screens/registro_nueva_persona_screen.dart'; // Nueva pantalla para registrar persona
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../models/registro_acceso.dart';
 import '../models/registro_vehiculo.dart';
+import 'package:intl/intl.dart';
+
 import 'home_screen.dart';
-import 'libro_novedades/novedades_screen.dart';
+import 'libro_novedades/novedades_screen.dart'; // Importar intl
+
+
+String _formatFecha(String fechaISO) {
+  DateTime fecha = DateTime.parse(fechaISO);
+  return DateFormat('dd/MM/yyyy HH:mm').format(fecha);
+}
+
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -70,7 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildDrawer(), // 🔹 Menú lateral agregado
+      drawer: _buildDrawer(),
       appBar: AppBar(
         title: Text('Dashboard'),
         leading: Builder(
@@ -84,82 +94,150 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(icon: Icon(Icons.exit_to_app), onPressed: _logout),
         ],
       ),
-      body: Stack(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
         children: [
-          // 🔹 Fondo con detalles geométricos
-          Positioned(
-            top: -50,
-            left: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                color: Color(0xFFEB6608).withOpacity(0.7),
-                shape: BoxShape.circle,
-              ),
+          Expanded(
+            child: _buildSection(
+              "Registros de Personas",
+              accesosPersonas,
+              Icons.person,
+              Colors.blueAccent, // 🔹 Color para la sección de personas
             ),
           ),
-          Positioned(
-            bottom: -80,
-            right: -80,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: Color(0xFF4AC0E8).withOpacity(0.6),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(16.0),
-            child: isLoading
-                ? Center(child: CircularProgressIndicator())
-                : Column(
-              children: [
-                _buildSection("Registros de Personas", accesosPersonas, Icons.person),
-                SizedBox(height: 20),
-                _buildSection("Registros de Vehículos", accesosVehiculos, Icons.directions_car),
-              ],
+          Expanded(
+            child: _buildSection(
+              "Registros de Vehículos",
+              accesosVehiculos,
+              Icons.directions_car,
+              Colors.orangeAccent, // 🔹 Color para la sección de vehículos
             ),
           ),
         ],
       ),
-      floatingActionButton: _buildFloatingButtons(),
+      bottomNavigationBar: _buildBottomButtons(),
     );
   }
 
-  Widget _buildSection(String title, List<dynamic> registros, IconData icon) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSection(String title, List<dynamic> registros, IconData icon, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 🔹 Encabezado de la sección con diseño llamativo
+        Container(
+          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          decoration: BoxDecoration(
+            color: color.withAlpha(230),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 28),
+              SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 10),
+
+        // 🔹 Contenedor con diseño atractivo
+        Expanded(
+          child: registros.isEmpty
+              ? Center(
+            child: Text("No hay registros disponibles", style: TextStyle(fontSize: 16, color: Colors.grey)),
+          )
+              : ListView.builder(
+            itemCount: registros.length,
+            itemBuilder: (context, index) {
+              final registro = registros[index];
+
+              return Container(
+                margin: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2)],
+                ),
+                child: ListTile(
+                  contentPadding: EdgeInsets.all(12),
+                  leading: CircleAvatar(
+                    backgroundColor: color.withAlpha(204),
+                    child: Icon(icon, color: Colors.white, size: 22),
+                  ),
+                  title: Text(
+                    "Nombre: ${registro is RegistroVehiculo ? registro.persona : registro.persona.nombre}",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Motivo: ${registro.motivoVisita}", style: TextStyle(fontSize: 14)),
+                      Text("Fecha: ${_formatFecha(registro.fechaHoraEntrada)}", style: TextStyle(fontSize: 14)),
+                      if (registro is RegistroVehiculo && registro.empresa != null && registro.empresa!.isNotEmpty)
+                        Text("Empresa: ${registro.empresa}", style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomButtons() {
+    return Container(
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF4b3a06))),
-          SizedBox(height: 10),
           Expanded(
-            child: registros.isEmpty
-                ? Center(child: Text("No hay registros", style: TextStyle(fontSize: 16)))
-                : ListView.builder(
-              itemCount: registros.length,
-              itemBuilder: (context, index) {
-                final registro = registros[index];
-                return Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: ListTile(
-                    leading: Icon(icon, color: Color(0xFFEB6608), size: 30),
-                    title: Text(
-                      "Motivo: ${registro.motivoVisita}",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text("Fecha: ${registro.fechaHoraEntrada}"),
-                    trailing: registro is RegistroVehiculo
-                        ? Text("Patente: ${registro.patente}", style: TextStyle(fontWeight: FontWeight.bold))
-                        : null,
-                  ),
-                );
+            child: _buildButton(
+              icon: Icons.person_add,
+              label: "Nueva Persona",
+              color: Colors.blue,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegistroNuevaPersonaScreen()),
+                ).then((_) => fetchData());
+              },
+            ),
+          ),
+          SizedBox(width: 5), // Espacio entre botones
+          Expanded(
+            child: _buildButton(
+              icon: Icons.how_to_reg,
+              label: "Ingreso Persona",
+              color: Colors.green,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegistroPersonaScreen()),
+                ).then((_) => fetchData());
+              },
+            ),
+          ),
+          SizedBox(width: 5), // Espacio entre botones
+          Expanded(
+            child: _buildButton(
+              icon: Icons.directions_car,
+              label: "Ingreso Vehículo",
+              color: Colors.orange,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegistroVehiculoScreen()),
+                ).then((_) => fetchData());
               },
             ),
           ),
@@ -168,40 +246,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildFloatingButtons() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        FloatingActionButton.extended(
-          heroTag: "btn1",
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => RegistroPersonaScreen()),
-            ).then((_) => fetchData());
-          },
-          icon: Icon(Icons.person_add),
-          label: Text("Acceso Persona"),
-          backgroundColor: Color(0xFFEB6608),
-        ),
-        SizedBox(height: 10),
-        FloatingActionButton.extended(
-          heroTag: "btn2",
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => RegistroVehiculoScreen()),
-            ).then((_) => fetchData());
-          },
-          icon: Icon(Icons.directions_car),
-          label: Text("Acceso Vehículo"),
-          backgroundColor: Color(0xFF4AC0E8),
-        ),
-      ],
+  Widget _buildButton({required IconData icon, required String label, required Color color, required VoidCallback onPressed}) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20),
+          SizedBox(height: 3),
+          Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+        ],
+      ),
     );
   }
 
-// 🔹 Menú lateral actualizado con navegación correcta
+  // 🔹 Menú lateral igual que en el Dashboard
   Widget _buildDrawer() {
     return Drawer(
       child: ListView(
@@ -218,10 +283,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             leading: Icon(Icons.home),
             title: Text("Inicio"),
             onTap: () {
-              Navigator.pop(context); // Cierra el menú
+              Navigator.pop(context); // 🔹 Cierra el menú antes de navegar
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => HomeScreen()), // 🔹 Redirige correctamente
+                MaterialPageRoute(builder: (context) => HomeScreen()), // 🔹 Redirige directamente a HomeScreen
               );
             },
           ),
@@ -240,10 +305,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             leading: Icon(Icons.book),
             title: Text("Libro de Novedades"),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => NovedadesScreen()), // 🔹 Agregada opción de Novedades
+                MaterialPageRoute(builder: (context) => NovedadesScreen()),
               );
             },
           ),
